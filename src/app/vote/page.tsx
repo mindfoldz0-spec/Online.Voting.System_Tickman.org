@@ -136,7 +136,11 @@ export default function VotePage() {
             const data = await res.json();
             if (data.verified) {
                 setBiometricVerified(true);
-                setVerifyMessage(data.message);
+                setVerifyMessage(
+                    typeof data.confidence === 'number'
+                        ? `${data.message} — match confidence ${Math.round(data.confidence)}%`
+                        : data.message
+                );
                 setFaceProof(typeof data.faceProof === 'string' ? data.faceProof : null);
                 setStep('confirm');
             } else {

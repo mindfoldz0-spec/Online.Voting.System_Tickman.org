@@ -1,6 +1,16 @@
+import { randomBytes } from 'crypto';
+
 const FACEPLUSPLUS_API_URL = 'https://api-us.faceplusplus.com/facepp/v3';
 const MIN_STRICT_FACE_THRESHOLD = 82;
 const STRICT_THRESHOLD_MARGIN = 1;
+
+// ─── Mock ("fake") face mode ────────────────────────────────────────────────
+// Simulates face detection & comparison without calling Face++. The client
+// still runs a real camera scan (face-api.js requires an actual face in the
+// frame), and the rest of the flow (tokens, proofs, votes) works unchanged.
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 interface FacePlusPlusDetectResponse {
     face_token?: string;
@@ -29,13 +39,18 @@ export interface FaceCompareResult {
 export class FacePlusPlus {
     private apiKey: string;
     private apiSecret: string;
+    private mockMode: boolean;
 
     constructor() {
         this.apiKey = process.env.FACEPLUSPLUS_API_KEY || '';
         this.apiSecret = process.env.FACEPLUSPLUS_API_SECRET || '';
 
-        if (!this.apiKey || !this.apiSecret) {
-            console.warn('Face++ API keys are missing');
+        // Fake face mode: simulate verification instead of calling Face++.
+        // Auto-enabled when API keys are missing, or forced with MOCK_FACE_AUTH="true".
+        this.mockMode = process.env.MOCK_FACE_AUTH === 'true' || !this.apiKey || !this.apiSecret;
+
+        if (this.mockMode) {
+            console.warn('[face] MOCK FACE MODE — face verification is simulated, no Face++ API calls are made.');
         }
     }
 
@@ -56,6 +71,15 @@ export class FacePlusPlus {
      * Detects a face in a base64 image and returns the face_token.
      */
     async detect(imageBase64: string): Promise<string | null> {
+        if (this.mockMode) {
+            if (!imageBase64 || imageBase64.length < 100) {
+                return null; // nothing usable was submitted
+            }
+            // Simulate processing latency so the flow feels real
+            await sleep(350 + Math.random() * 400);
+            return `MOCKFACE:${randomBytes(16).toString('hex')}`;
+        }
+
         try {
             const formData = new FormData();
             formData.append('api_key', this.apiKey);
@@ -98,6 +122,21 @@ export class FacePlusPlus {
      * @returns confidence + strict threshold to evaluate or null on error.
      */
     async compare(faceToken: string, imageBase64: string): Promise<FaceCompareResult | null> {
+        if (this.mockMode) {
+            if (!imageBase64 || imageBase64.length < 100) {
+                return null;
+            }
+            // Simulate processing latency so the flow feels real
+            await sleep(400 + Math.random() * 500);
+            const threshold = MIN_STRICT_FACE_THRESHOLD;
+            const confidence = 88 + Math.random() * 8; // 88–96: comfortably above the 82 threshold
+            return {
+                confidence,
+                threshold,
+                thresholds: { '1e-5': threshold - 1 },
+            };
+        }
+
         try {
             const formData = new FormData();
             formData.append('api_key', this.apiKey);
