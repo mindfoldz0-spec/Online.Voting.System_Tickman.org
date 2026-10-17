@@ -3,7 +3,8 @@ import { hashSync } from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const TOTAL_GOV_RECORDS = 10_000;
+// Number of government records to seed (override with SEED_RECORD_COUNT env var)
+const TOTAL_GOV_RECORDS = Number(process.env.SEED_RECORD_COUNT ?? 500);
 const ADMIN_EMAIL = 'mayu@gmail.com';
 const ADMIN_PASSWORD = 'mayu123';
 const ADMIN_NAME = 'Mayu Admin';

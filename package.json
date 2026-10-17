@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "export:records": "tsx scripts/export-records-xlsx.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -37,6 +38,7 @@
     "dotenv": "^17.2.4",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "exceljs": "^4.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5"
   }
